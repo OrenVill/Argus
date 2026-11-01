@@ -8,10 +8,14 @@ test:
 	go test ./... -count=1
 
 test-integration:
-	@if [ "$${ARGUS_TEST_REDIS:-}" = "1" ]; then \
+	@run_integration=0; \
+	if [ "$${ARGUS_TEST_REDIS:-}" = "1" ]; then run_integration=1; \
+	elif command -v redis-cli >/dev/null 2>&1 && redis-cli ping 2>/dev/null | grep -q PONG; then run_integration=1; \
+	fi; \
+	if [ "$$run_integration" = "1" ]; then \
 		go test ./test/integration/... -count=1 -tags=integration; \
 	else \
-		echo "Skipping integration tests (set ARGUS_TEST_REDIS=1 to run)"; \
+		echo "Skipping integration tests (set ARGUS_TEST_REDIS=1 or start Redis)"; \
 	fi
 
 golangci-lint:
