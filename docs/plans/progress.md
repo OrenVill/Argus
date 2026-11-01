@@ -6,7 +6,7 @@
 | Brainstorm | done | See implementation design spec |
 | Design on integration | done | `efb7195` on `cursor/argus-v1-integration-8966`; PR #1 → integration |
 | Implementation plan | done | `docs/superpowers/plans/2026-11-01-argus-v1-implementation.md` |
-| Track A normalization | fixes | PR #2 blocked; [Track A code review](bc-8ef15888-8d5c-5f91-afad-a9bb4087e08a) request-changes — IPv6 mask + should-fix; composer fix agent running |
+| Track A normalization | re-review | PR #2; fixes [Track A review fixes](bc-d5b2884e-530d-5b9b-ad22-f75365357b0e); orchestrator lint fix `1ef9299`; [Track A re-review](bc-e90dcaa0-98b7-5a25-9b89-f1a12ee0ff43) |
 | Track B redis-detection | pending | blocked on A merge to integration |
 | Track C runtime | pending | blocked on B merge |
 | project-reviewer | pending | on integration after C; then PR integration → `main` |
