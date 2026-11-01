@@ -2,7 +2,7 @@
 
 Tier-1 log anomaly detection daemon: tail logs, mask and template with Drain, track state in Redis, and POST to webhooks only on real anomalies.
 
-**Status:** specification and development environment only — the daemon is not implemented yet.
+**Status:** v1 Tier-1 daemon implemented (ingest, pipeline, Redis detection, async webhooks, control API, CLI). See [`docs/SPEC.md`](docs/SPEC.md).
 
 Product specification: [`docs/SPEC.md`](docs/SPEC.md) (implementation-ready v1.0).
 
@@ -70,3 +70,15 @@ redis-cli ping
 After you **Save** the Cloud Agent environment, Redis should start automatically on each agent boot via `start`. If `docs/SPEC.md` is missing locally, run `git pull origin main` (ensure latest commits are on Origin).
 
 Example configuration: [`config/argus.yaml.example`](config/argus.yaml.example).
+
+### Run locally
+
+```bash
+export ALERT_WEBHOOK_URL=http://127.0.0.1:8765/hook
+go build -o argus ./cmd/argus
+./argus run -c config/argus.yaml.example   # set inputs.stdin or files for your environment
+./argus grace start --service payment-svc --duration 30m -c config/argus.yaml.example
+./argus template ignore --hash <hex> -c config/argus.yaml.example
+```
+
+Smoke (Redis + mock webhook pipeline): `bash scripts/argus-smoke.sh`
