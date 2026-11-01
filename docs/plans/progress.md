@@ -8,8 +8,8 @@
 | Implementation plan | done | `docs/superpowers/plans/2026-11-01-argus-v1-implementation.md` |
 | Track A normalization | done | Merged to integration @ `ab2302f`; [Track A final review](bc-d91f33af-46f9-5481-a720-7daa4b0bee2c) approve |
 | Track B redis-detection | done | Merged to integration @ `0704ba4`; [Track B code review](bc-38c64c8c-d41c-5bfe-a870-8437757cd970) approve |
-| Track C runtime | review | PR #4; [Track C runtime implementer](bc-4c662105-9197-5ee3-927d-74a11fa7aa34) done; quality+smoke OK; [Track C code review](bc-c11750f5-a440-57bc-805c-803506bbf1e7) |
-| project-reviewer | pending | on integration after C; then PR integration → `main` |
+| Track C runtime | done | Merged @ `0c5013c`; [Track C code review](bc-c11750f5-a440-57bc-805c-803506bbf1e7) approve |
+| project-reviewer | in_progress | [Argus v1 project review](bc-3191f7e2-9da4-5534-bd0f-62a497333f7a) on integration |
 
 **Integration branch:** `cursor/argus-v1-integration-8966` — **all** mission PRs (design + tracks A/B/C) merge here first.
 
