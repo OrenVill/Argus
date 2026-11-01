@@ -1,0 +1,20 @@
+{
+  "name": "Argus",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "ports": [
+    {
+      "name": "Argus control API (future)",
+      "port": 9090
+    },
+    {
+      "name": "Webhook receiver (dev mock)",
+      "port": 8765
+    }
+  ]
+}
