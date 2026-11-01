@@ -7,7 +7,7 @@
 | Design on integration | done | `efb7195` on `cursor/argus-v1-integration-8966`; PR #1 → integration |
 | Implementation plan | done | `docs/superpowers/plans/2026-11-01-argus-v1-implementation.md` |
 | Track A normalization | done | Merged to integration @ `ab2302f`; [Track A final review](bc-d91f33af-46f9-5481-a720-7daa4b0bee2c) approve |
-| Track B redis-detection | in_progress | Cloud implementer launching |
+| Track B redis-detection | in_progress | [Track B redis implementer](bc-71e029ed-21b6-580d-a0af-2a5a7f62dcf0) |
 | Track C runtime | pending | blocked on B merge |
 | project-reviewer | pending | on integration after C; then PR integration → `main` |
 
