@@ -68,3 +68,27 @@ func TestBuiltinOrderUUIDBeforeNum(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestIPv6AndTimeMasking(t *testing.T) {
+	m, err := mask.New(config.Normalization{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cases := []struct {
+		in, want string
+	}{
+		{"::1", "<IP>"},
+		{"fe80::1", "<IP>"},
+		{"2001:db8::1", "<IP>"},
+		{"2001:0db8:85a3:0000:0000:8a2e:0370:7334", "<IP>"},
+		{"[2001:db8::1]", "<IP>"},
+		{"2024-01-15 12:00:00", "<TS>"},
+		{"time 12:00:00 only", "time 12:00:00 only"},
+	}
+	for _, tc := range cases {
+		got := m.Apply(tc.in)
+		if got != tc.want {
+			t.Errorf("Apply(%q)\n  got  %q\n  want %q", tc.in, got, tc.want)
+		}
+	}
+}

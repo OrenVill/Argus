@@ -2,7 +2,9 @@ package mask
 
 import (
 	"fmt"
+	"net"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/OrenVill/Argus/internal/config"
@@ -17,6 +19,11 @@ const (
 	TokenPII  = "<PII>"
 	TokenNUM  = "<NUM>"
 )
+
+// ipv6Candidate finds bracketed or colon-hex substrings; net.ParseIP filters false positives (e.g. 12:00:00).
+var ipv6Candidate = regexp.MustCompile(`(?i)(?:\[(?:[0-9a-f]{0,4}:){1,7}[0-9a-f]{0,4}\]|(?:[0-9a-f]{1,4}:){1,7}[0-9a-f]{0,4}|(?:[0-9a-f]{1,4}:){1,7}:|:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{0,4})(?::\d+)?`)
+
+var clockTimeSpan = regexp.MustCompile(`\b\d{1,2}:\d{2}:\d{2}\b`)
 
 type rule struct {
 	re  *regexp.Regexp
@@ -43,8 +50,6 @@ func builtinMaskRules() []rule {
 			{`(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`, TokenUUID},
 			// IPv4 with optional port
 			{`\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b`, TokenIP},
-			// IPv6 (require hex; avoid matching clock times like 12:00:00)
-			{`\b(?:(?:[0-9a-fA-F]{1,4}:){1,7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:)(?::\d+)?\b`, TokenIP},
 			// ISO-8601 timestamps
 			{`\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?\b`, TokenTS},
 			// Common date/time
@@ -97,11 +102,104 @@ func New(cfg config.Normalization) (*Masker, error) {
 	return &Masker{rules: rules}, nil
 }
 
-// Apply runs all masking rules on the full line.
+// Apply runs all masking rules on the full line (built-in order per spec §4.1).
 func (m *Masker) Apply(line string) string {
 	out := line
-	for _, r := range m.rules {
+	builtinN := len(builtinMaskRules())
+	for i, r := range m.rules {
+		if r.tok == TokenNUM {
+			out = replaceIntegers(out, r.re, r.tok)
+			continue
+		}
 		out = r.re.ReplaceAllString(out, r.tok)
+		// Built-in IPv4 is index 1; IPv6 masking follows immediately per §4.1 IP before TS/NUM.
+		if i == 1 && builtinN > 1 {
+			out = maskIPv6(out)
+		}
 	}
 	return out
+}
+
+func replaceIntegers(line string, re *regexp.Regexp, tok string) string {
+	clock := regexp.MustCompile(`\b\d{1,2}:\d{2}:\d{2}\b`)
+	spans := clock.FindAllStringIndex(line, -1)
+	insideClock := func(start, end int) bool {
+		for _, sp := range spans {
+			if start >= sp[0] && end <= sp[1] {
+				return true
+			}
+		}
+		return false
+	}
+	var b strings.Builder
+	last := 0
+	for _, loc := range re.FindAllStringSubmatchIndex(line, -1) {
+		start, end := loc[0], loc[1]
+		if start < last {
+			continue
+		}
+		b.WriteString(line[last:start])
+		if insideClock(start, end) {
+			b.WriteString(line[start:end])
+		} else {
+			b.WriteString(tok)
+		}
+		last = end
+	}
+	b.WriteString(line[last:])
+	return b.String()
+}
+
+func maskIPv6(line string) string {
+	var b strings.Builder
+	b.Grow(len(line))
+	remaining := line
+	for {
+		loc := ipv6Candidate.FindStringIndex(remaining)
+		if loc == nil {
+			b.WriteString(remaining)
+			break
+		}
+		start, end := loc[0], loc[1]
+		b.WriteString(remaining[:start])
+		candidate := remaining[start:end]
+		if isIPv6Literal(candidate) && hasIPv6Boundary(remaining, start, end) {
+			b.WriteString(TokenIP)
+		} else {
+			b.WriteString(candidate)
+		}
+		remaining = remaining[end:]
+	}
+	return b.String()
+}
+
+func hasIPv6Boundary(line string, start, end int) bool {
+	if start > 0 {
+		prev := line[start-1]
+		if (prev >= '0' && prev <= '9') || (prev >= 'a' && prev <= 'z') || (prev >= 'A' && prev <= 'Z') || prev == ':' {
+			return false
+		}
+	}
+	if end < len(line) {
+		next := line[end]
+		if (next >= '0' && next <= '9') || (next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z') || next == ':' {
+			return false
+		}
+	}
+	return true
+}
+
+func isIPv6Literal(s string) bool {
+	host := s
+	if i := strings.Index(host, "]:"); i >= 0 {
+		host = host[:i+1]
+	}
+	host = strings.TrimPrefix(host, "[")
+	host = strings.TrimSuffix(host, "]")
+	if strings.Contains(host, "::") || strings.Count(host, ":") >= 2 {
+		if ip := net.ParseIP(host); ip != nil && strings.Contains(host, ":") {
+			return true
+		}
+	}
+	return false
 }

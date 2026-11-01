@@ -28,3 +28,13 @@ func TestTemplateHashDiffersByEnv(t *testing.T) {
 		t.Fatal("hash should differ by env")
 	}
 }
+
+func TestTemplateHashGolden(t *testing.T) {
+	m := meta.Meta{Env: "prod", Service: "payment-svc", ImageTag: "v1.2.3-should-not-affect"}
+	tpl := "ERROR payment failed for user <UUID>"
+	got := hash.TemplateHash(m, tpl)
+	want := "f5b43df828bd7540"
+	if got != want {
+		t.Fatalf("golden hash: got %q want %q", got, want)
+	}
+}

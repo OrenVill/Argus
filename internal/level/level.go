@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"regexp"
 	"strings"
+
+	"github.com/OrenVill/Argus/internal/config"
 )
 
 // Level is a normalized log severity.
@@ -46,7 +48,19 @@ func (p *Parser) Parse(line string) Level {
 	if len(matches) >= 2 {
 		return normalize(matches[1])
 	}
+	if len(matches) == 1 {
+		return normalize(matches[0])
+	}
 	return Info
+}
+
+// ParseLine extracts log level using config fields (Track A contract).
+func ParseLine(line string, cfg config.LogLevel) (Level, error) {
+	p, err := NewParser(cfg.JSONField, cfg.Regex)
+	if err != nil {
+		return Info, err
+	}
+	return p.Parse(line), nil
 }
 
 func parseJSONField(line, field string) (string, bool) {

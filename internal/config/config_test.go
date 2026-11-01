@@ -60,6 +60,56 @@ webhook:
 	}
 }
 
+func TestValidateRejectsInvalidMaskRegex(t *testing.T) {
+	cfg := &config.Config{
+		Meta:   config.Meta{Env: "e", Service: "s"},
+		Redis:  config.Redis{Address: "127.0.0.1:6379", KeyPrefix: "argus:", TTLDays: 30},
+		Inputs: config.Inputs{Stdin: true},
+		Detection: config.Detection{
+			GraceWindowDuration: "30m",
+			RegressionThreshold: "24h",
+			SurgeMultipliers:    []int{10, 100, 1000},
+		},
+		Normalization: config.Normalization{
+			DrainDepth:   4,
+			SimThreshold: 0.5,
+			MaskingPatterns: []config.MaskingPattern{
+				{Name: "bad", Regex: "[unclosed"},
+			},
+		},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected invalid mask regex error")
+	}
+}
+
+func TestValidateRejectsNonPositiveSimThreshold(t *testing.T) {
+	cfg := &config.Config{
+		Meta:   config.Meta{Env: "e", Service: "s"},
+		Redis:  config.Redis{Address: "127.0.0.1:6379", KeyPrefix: "argus:", TTLDays: 30},
+		Inputs: config.Inputs{Stdin: true},
+		Detection: config.Detection{
+			GraceWindowDuration: "30m",
+			RegressionThreshold: "24h",
+			SurgeMultipliers:    []int{10, 100, 1000},
+		},
+		Normalization: config.Normalization{DrainDepth: 4, SimThreshold: -0.1},
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("expected sim_threshold error")
+	}
+}
+
+func TestToMeta(t *testing.T) {
+	cfg := &config.Config{
+		Meta: config.Meta{Env: "prod", Service: "pay", ImageTag: "v3"},
+	}
+	m := cfg.ToMeta()
+	if m.Env != "prod" || m.Service != "pay" || m.ImageTag != "v3" {
+		t.Fatalf("ToMeta: %+v", m)
+	}
+}
+
 func TestValidateRequiredMeta(t *testing.T) {
 	cfg := &config.Config{
 		Redis:  config.Redis{Address: "127.0.0.1:6379", KeyPrefix: "argus:", TTLDays: 30},

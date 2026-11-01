@@ -3,6 +3,7 @@ package level_test
 import (
 	"testing"
 
+	"github.com/OrenVill/Argus/internal/config"
 	"github.com/OrenVill/Argus/internal/level"
 )
 
@@ -44,6 +45,26 @@ func TestUnknownDefaultsInfo(t *testing.T) {
 	}
 	if p.Parse("no level here") != level.Info {
 		t.Fatal("expected INFO default")
+	}
+}
+
+func TestRegexWithoutCaptureGroupUsesFullMatch(t *testing.T) {
+	p, err := level.NewParser("", `(?i)^ERROR$`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Parse("ERROR") != level.Error {
+		t.Fatalf("expected ERROR from full match, got %s", p.Parse("ERROR"))
+	}
+}
+
+func TestParseLineFromConfig(t *testing.T) {
+	lv, err := level.ParseLine("something WARNING happened", config.LogLevel{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lv != level.Warn {
+		t.Fatalf("got %s", lv)
 	}
 }
 

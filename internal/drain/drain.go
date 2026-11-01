@@ -9,12 +9,19 @@ import (
 
 const wildcardToken = "<*>"
 
+// maxClustersPerTree bounds in-memory templates per (env, service) per spec §11 RSS target.
+const maxClustersPerTree = 2048
+
 // Cluster is the result of matching a masked log line.
 type Cluster struct {
 	Template string
 }
 
 // Forest holds Drain trees keyed by (env, service).
+//
+// Contract (Track A): use NewForest for shared multi-service forests, or NewProcessForest
+// when one process serves a single meta pair. Match requires meta when using Forest directly;
+// ProcessForest.Match(line) scopes metadata at construction time.
 type Forest struct {
 	depth     int
 	threshold float64
@@ -23,18 +30,35 @@ type Forest struct {
 }
 
 // NewForest creates a forest with the given depth and similarity threshold.
+// simThreshold must be positive (enforce via config.Validate before calling).
 func NewForest(depth int, threshold float64) *Forest {
 	if depth <= 0 {
 		depth = 4
-	}
-	if threshold <= 0 {
-		threshold = 0.5
 	}
 	return &Forest{
 		depth:     depth,
 		threshold: threshold,
 		trees:     make(map[string]*tree),
 	}
+}
+
+// ProcessForest is a Drain forest scoped to one (env, service) pair (design-spec API).
+type ProcessForest struct {
+	inner *Forest
+	m     meta.Meta
+}
+
+// NewProcessForest creates a forest for a single metadata pair (design spec: NewForest(meta, depth, simThreshold)).
+func NewProcessForest(m meta.Meta, depth int, simThreshold float64) *ProcessForest {
+	return &ProcessForest{
+		inner: NewForest(depth, simThreshold),
+		m:     m,
+	}
+}
+
+// Match parses a masked line into a template cluster (design spec: Forest.Match(line)).
+func (p *ProcessForest) Match(line string) Cluster {
+	return p.inner.Match(p.m, line)
 }
 
 // Match parses a masked line into a template cluster for the given metadata.
@@ -84,23 +108,44 @@ func (t *tree) match(tokens []string) *logCluster {
 	var best *logCluster
 	bestSim := -1.0
 	for _, c := range node {
-		sim := jaccardSimilarity(tokens, c.representative())
+		sim := jaccardSimilarity(tokens, c.template)
 		if sim > bestSim {
 			bestSim = sim
 			best = c
 		}
 	}
 	if best != nil && bestSim >= t.threshold {
-		best.add(tokens)
+		best.merge(tokens)
 		return best
 	}
-	c := &logCluster{tokens: [][]string{append([]string(nil), tokens...)}}
+	if t.totalClusters() >= maxClustersPerTree {
+		t.evictOne()
+	}
+	c := &logCluster{template: append([]string(nil), tokens...)}
 	t.byLength[len(tokens)] = append(t.byLength[len(tokens)], c)
 	return c
 }
 
+func (t *tree) totalClusters() int {
+	n := 0
+	for _, list := range t.byLength {
+		n += len(list)
+	}
+	return n
+}
+
+func (t *tree) evictOne() {
+	for length, list := range t.byLength {
+		if len(list) == 0 {
+			continue
+		}
+		t.byLength[length] = list[1:]
+		return
+	}
+}
+
 func (t *tree) nodeFor(tokens []string) []*logCluster {
-	// Fixed-depth routing: first (maxDepth-1) prefix tokens select a child bucket,
+	// Fixed-depth routing: first (maxDepth-2) prefix tokens select a child bucket,
 	// then Jaccard runs within that bucket (same length + shared prefix).
 	prefixLen := t.maxDepth - 2
 	if prefixLen < 0 {
@@ -152,60 +197,45 @@ func jaccardSimilarity(a, b []string) float64 {
 }
 
 type logCluster struct {
-	tokens [][]string
+	template []string
 }
 
 func (c *logCluster) prefixKey(n int) string {
-	return prefixKey(c.representative(), n)
+	return prefixKey(c.template, n)
 }
 
-func (c *logCluster) representative() []string {
-	if len(c.tokens) == 0 {
-		return nil
+func (c *logCluster) merge(tokens []string) {
+	maxLen := len(c.template)
+	if len(tokens) > maxLen {
+		maxLen = len(tokens)
 	}
-	return c.tokens[0]
-}
-
-func (c *logCluster) add(tokens []string) {
-	c.tokens = append(c.tokens, append([]string(nil), tokens...))
+	merged := make([]string, maxLen)
+	copy(merged, c.template)
+	for i := 0; i < maxLen; i++ {
+		var cur, incoming string
+		if i < len(merged) {
+			cur = merged[i]
+		}
+		if i < len(tokens) {
+			incoming = tokens[i]
+		}
+		if cur == wildcardToken || incoming == "" {
+			if cur == "" && incoming != "" {
+				merged[i] = incoming
+			}
+			continue
+		}
+		if cur == incoming {
+			continue
+		}
+		merged[i] = wildcardToken
+	}
+	c.template = merged
 }
 
 func (c *logCluster) templateString() string {
-	if len(c.tokens) == 0 {
+	if len(c.template) == 0 {
 		return ""
 	}
-	maxLen := 0
-	for _, seq := range c.tokens {
-		if len(seq) > maxLen {
-			maxLen = len(seq)
-		}
-	}
-	out := make([]string, maxLen)
-	for i := 0; i < maxLen; i++ {
-		var first string
-		wildcard := false
-		for _, seq := range c.tokens {
-			if i >= len(seq) {
-				wildcard = true
-				continue
-			}
-			tok := seq[i]
-			if first == "" {
-				first = tok
-				continue
-			}
-			if tok != first {
-				wildcard = true
-			}
-		}
-		if wildcard || first == "" {
-			out[i] = wildcardToken
-		} else {
-			out[i] = first
-		}
-	}
-	for len(out) > 0 && out[len(out)-1] == "" {
-		out = out[:len(out)-1]
-	}
-	return strings.Join(out, " ")
+	return strings.Join(c.template, " ")
 }

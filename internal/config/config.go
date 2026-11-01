@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/OrenVill/Argus/internal/meta"
 )
 
 var envVarPattern = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}`)
@@ -103,7 +105,19 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
 	applyDefaults(&cfg)
+	if err := cfg.Validate(); err != nil {
+		return nil, err
+	}
 	return &cfg, nil
+}
+
+// ToMeta converts YAML meta fields to runtime meta.Meta (env, service, image_tag).
+func (c *Config) ToMeta() meta.Meta {
+	return meta.Meta{
+		Env:      c.Meta.Env,
+		Service:  c.Meta.Service,
+		ImageTag: c.Meta.ImageTag,
+	}
 }
 
 // Validate checks required fields for any loaded config.
@@ -147,6 +161,20 @@ func (c *Config) Validate() error {
 		if _, err := time.ParseDuration(c.Webhook.Timeout); err != nil {
 			return fmt.Errorf("webhook.timeout: %w", err)
 		}
+	}
+	if c.Normalization.SimThreshold <= 0 {
+		return fmt.Errorf("normalization.sim_threshold must be positive")
+	}
+	if c.Normalization.DrainDepth <= 0 {
+		return fmt.Errorf("normalization.drain_depth must be positive")
+	}
+	for _, p := range c.Normalization.MaskingPatterns {
+		if _, err := regexp.Compile(p.Regex); err != nil {
+			return fmt.Errorf("normalization.masking_patterns %q: %w", p.Name, err)
+		}
+	}
+	if _, err := regexp.Compile(c.LogLevel.Regex); err != nil {
+		return fmt.Errorf("log_level.regex: %w", err)
 	}
 	return nil
 }
