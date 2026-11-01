@@ -16,6 +16,10 @@ if [[ -f go.mod ]]; then
   go mod verify
 fi
 
+if ! command -v golangci-lint >/dev/null; then
+  go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+fi
+
 if [[ -f Makefile ]]; then
   make -n test >/dev/null 2>&1 || true
 fi
