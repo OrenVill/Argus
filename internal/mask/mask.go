@@ -50,6 +50,8 @@ func builtinMaskRules() []rule {
 			// Common date/time
 			{`\b\d{4}[-/]\d{2}[-/]\d{2}(?:[ T]\d{2}:\d{2}:\d{2})?\b`, TokenTS},
 			{`\b\d{2}[-/]\d{2}[-/]\d{4}(?:[ T]\d{2}:\d{2}:\d{2})?\b`, TokenTS},
+			// Bare clock times (HH:MM:SS)
+			{`\b\d{1,2}:\d{2}:\d{2}\b`, TokenTS},
 			// Unix epoch seconds or milliseconds
 			{`\b1[0-9]{9,12}\b`, TokenTS},
 			// Hex pointers
@@ -58,6 +60,8 @@ func builtinMaskRules() []rule {
 			{`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, TokenPII},
 			// Bearer tokens
 			{`(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*`, TokenPII},
+			// Authorization Basic header values
+			{`(?i)Authorization:\s*Basic\s+[A-Za-z0-9+/=]+`, TokenPII},
 			// Basic auth in URLs
 			{`(?i)://[^:\s]+:[^@\s]+@`, TokenPII},
 			// Integer / float metrics (last built-in; decimals before integers)
@@ -103,7 +107,7 @@ func (m *Masker) Apply(line string) string {
 	builtinN := len(builtinMaskRules())
 	for i, r := range m.rules {
 		if r.tok == TokenNUM {
-			out = replaceIntegers(out, r.re, r.tok)
+			out = r.re.ReplaceAllString(out, r.tok)
 			continue
 		}
 		// Built-in IPv4 is index 1; mask maximal IPv6 literals before dotted-quad so mapped forms stay one <IP>.
@@ -113,36 +117,6 @@ func (m *Masker) Apply(line string) string {
 		out = r.re.ReplaceAllString(out, r.tok)
 	}
 	return out
-}
-
-func replaceIntegers(line string, re *regexp.Regexp, tok string) string {
-	clock := regexp.MustCompile(`\b\d{1,2}:\d{2}:\d{2}\b`)
-	spans := clock.FindAllStringIndex(line, -1)
-	insideClock := func(start, end int) bool {
-		for _, sp := range spans {
-			if start >= sp[0] && end <= sp[1] {
-				return true
-			}
-		}
-		return false
-	}
-	var b strings.Builder
-	last := 0
-	for _, loc := range re.FindAllStringSubmatchIndex(line, -1) {
-		start, end := loc[0], loc[1]
-		if start < last {
-			continue
-		}
-		b.WriteString(line[last:start])
-		if insideClock(start, end) {
-			b.WriteString(line[start:end])
-		} else {
-			b.WriteString(tok)
-		}
-		last = end
-	}
-	b.WriteString(line[last:])
-	return b.String()
 }
 
 func maskIPv6(line string) string {

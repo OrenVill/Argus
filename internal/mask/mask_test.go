@@ -41,6 +41,10 @@ func TestMaskGolden(t *testing.T) {
 			"auth <PII>",
 		},
 		{
+			"Authorization: Basic dXNlcjpwYXNzd29yZA==",
+			"<PII>",
+		},
+		{
 			"latency 42.5ms count 1000",
 			"latency <NUM>ms count <NUM>",
 		},
@@ -87,7 +91,7 @@ func TestIPv6AndTimeMasking(t *testing.T) {
 		{"host 2001:db8:: port 80", "host <IP> port <NUM>"},
 		{"::ffff:192.0.2.1", "<IP>"},
 		{"2024-01-15 12:00:00", "<TS>"},
-		{"time 12:00:00 only", "time 12:00:00 only"},
+		{"time 12:00:00 only", "time <TS> only"},
 	}
 	for _, tc := range cases {
 		got := m.Apply(tc.in)

@@ -3,6 +3,7 @@ package control
 import (
 	"context"
 	"encoding/json"
+	"expvar"
 	"fmt"
 	"net/http"
 	"strings"
@@ -44,6 +45,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	api := chi.NewRouter()
 	api.Use(s.bearerMiddleware)
+	api.Handle("/debug/vars", expvar.Handler())
 	api.Post("/api/v1/templates/{hash}/status", s.handleTemplateStatus)
 	api.Post("/api/v1/deploy/grace-window", s.handleGraceWindow)
 	r.Mount("/", api)

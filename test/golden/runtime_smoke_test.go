@@ -18,6 +18,7 @@ import (
 	"github.com/OrenVill/Argus/internal/pipeline"
 	iredis "github.com/OrenVill/Argus/internal/redis"
 	"github.com/OrenVill/Argus/internal/webhook"
+	"github.com/OrenVill/Argus/test/redisutil"
 )
 
 func TestRuntimeSmokePipelineWebhookRedis(t *testing.T) {
@@ -27,7 +28,9 @@ func TestRuntimeSmokePipelineWebhookRedis(t *testing.T) {
 		t.Skipf("redis: %v", err)
 	}
 	prefix := "argus:smoke-runtime:"
-	_ = rdb.FlushDB(ctx)
+	if err := redisutil.DeleteKeysWithPrefix(ctx, rdb, prefix); err != nil {
+		t.Fatalf("delete test keys: %v", err)
+	}
 
 	var mu sync.Mutex
 	var bodies []map[string]any

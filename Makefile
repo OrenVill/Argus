@@ -13,7 +13,7 @@ test-integration:
 	elif command -v redis-cli >/dev/null 2>&1 && redis-cli ping 2>/dev/null | grep -q PONG; then run_integration=1; \
 	fi; \
 	if [ "$$run_integration" = "1" ]; then \
-		go test ./test/integration/... -count=1 -tags=integration; \
+		go test ./test/integration/... ./test/golden/... -count=1 -tags=integration; \
 	else \
 		echo "Skipping integration tests (set ARGUS_TEST_REDIS=1 or start Redis)"; \
 	fi

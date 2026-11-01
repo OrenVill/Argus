@@ -13,13 +13,21 @@ import (
 )
 
 type fileTailer struct {
-	patterns []string
-	send     sendLine
-	active   sync.Map // path -> struct{}
+	patterns     []string
+	send         sendLine
+	active       sync.Map // path -> struct{}
+	startupPaths sync.Map // paths present at initial glob (tail from EOF)
 }
 
 func runFileTails(ctx context.Context, patterns []string, out chan<- string, send sendLine) {
 	ft := &fileTailer{patterns: patterns, send: send}
+	if paths, err := expandPatterns(patterns); err != nil {
+		slog.Warn("expand file patterns at startup", "err", err)
+	} else {
+		for _, path := range paths {
+			ft.startupPaths.Store(path, struct{}{})
+		}
+	}
 	ft.refresh(ctx, out)
 	go ft.watchDirs(ctx, out)
 	ticker := time.NewTicker(30 * time.Second)
@@ -44,15 +52,16 @@ func (ft *fileTailer) refresh(ctx context.Context, out chan<- string) {
 		if _, loaded := ft.active.LoadOrStore(path, struct{}{}); loaded {
 			continue
 		}
-		go ft.tailOne(ctx, path, out)
+		_, seekEOF := ft.startupPaths.Load(path)
+		go ft.tailOne(ctx, path, out, seekEOF)
 	}
 }
 
-func (ft *fileTailer) tailOne(ctx context.Context, path string, out chan<- string) {
+func (ft *fileTailer) tailOne(ctx context.Context, path string, out chan<- string, seekEOF bool) {
 	defer ft.active.Delete(path)
 
 	for ctx.Err() == nil {
-		if err := tailFile(ctx, path, out, ft.send); err != nil {
+		if err := tailFile(ctx, path, out, ft.send, seekEOF); err != nil {
 			slog.Debug("file tail ended", "path", path, "err", err)
 		}
 		select {
@@ -66,14 +75,17 @@ func (ft *fileTailer) tailOne(ctx context.Context, path string, out chan<- strin
 	}
 }
 
-func tailFile(ctx context.Context, path string, out chan<- string, send sendLine) error {
-	t, err := tail.TailFile(path, tail.Config{
+func tailFile(ctx context.Context, path string, out chan<- string, send sendLine, seekEOF bool) error {
+	cfg := tail.Config{
 		Follow:    true,
 		ReOpen:    true,
 		MustExist: false,
 		Poll:      true,
-		Location:  &tail.SeekInfo{Offset: 0, Whence: 2},
-	})
+	}
+	if seekEOF {
+		cfg.Location = &tail.SeekInfo{Offset: 0, Whence: 2}
+	}
+	t, err := tail.TailFile(path, cfg)
 	if err != nil {
 		return err
 	}

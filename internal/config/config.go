@@ -105,6 +105,7 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
 	applyDefaults(&cfg)
+	applyMetaEnvOverrides(&cfg)
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
@@ -127,6 +128,15 @@ func (c *Config) Validate() error {
 	}
 	if c.Meta.Service == "" {
 		return fmt.Errorf("meta.service is required")
+	}
+	if err := rejectUnresolvedEnvPlaceholders(c.Meta.Env, "meta.env"); err != nil {
+		return err
+	}
+	if err := rejectUnresolvedEnvPlaceholders(c.Meta.Service, "meta.service"); err != nil {
+		return err
+	}
+	if err := rejectUnresolvedEnvPlaceholders(c.Meta.ImageTag, "meta.image_tag"); err != nil {
+		return err
 	}
 	if c.Redis.Address == "" {
 		return fmt.Errorf("redis.address is required")
@@ -207,6 +217,25 @@ func expandEnv(s string) string {
 		}
 		return match
 	})
+}
+
+func rejectUnresolvedEnvPlaceholders(value, field string) error {
+	if strings.Contains(value, "${") {
+		return fmt.Errorf("%s contains unresolved ${ENV} placeholder", field)
+	}
+	return nil
+}
+
+func applyMetaEnvOverrides(cfg *Config) {
+	if v := strings.TrimSpace(os.Getenv("ARGUS_ENV")); v != "" {
+		cfg.Meta.Env = v
+	}
+	if v := strings.TrimSpace(os.Getenv("ARGUS_SERVICE")); v != "" {
+		cfg.Meta.Service = v
+	}
+	if v := strings.TrimSpace(os.Getenv("ARGUS_IMAGE_TAG")); v != "" {
+		cfg.Meta.ImageTag = v
+	}
 }
 
 func applyDefaults(cfg *Config) {

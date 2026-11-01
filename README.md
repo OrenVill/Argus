@@ -56,7 +56,7 @@ Cloud Agents use [`.cursor/environment.json`](.cursor/environment.json):
 | --- | --- |
 | Go 1.23 | Daemon implementation (spec allows Go or Rust; this repo targets Go) |
 | Redis | Template state (`argus:<env>:<service>:<hash>`) |
-| Port 9090 | Reserved for the future control API |
+| Port 9090 | Control API (`control.listen`, default `127.0.0.1:9090`) |
 | Port 8765 | Reserved for a local webhook mock during development |
 
 ### Local commands

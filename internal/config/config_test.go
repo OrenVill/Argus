@@ -110,6 +110,59 @@ func TestToMeta(t *testing.T) {
 	}
 }
 
+func TestMetaEnvOverrides(t *testing.T) {
+	t.Setenv("ARGUS_ENV", "from-env")
+	t.Setenv("ARGUS_SERVICE", "svc-env")
+	t.Setenv("ARGUS_IMAGE_TAG", "tag-v9")
+	dir := t.TempDir()
+	path := filepath.Join(dir, "cfg.yaml")
+	content := `version: "1.0"
+meta:
+  env: yaml-env
+  service: yaml-svc
+  image_tag: yaml-tag
+inputs:
+  stdin: true
+redis:
+  address: "127.0.0.1:6379"
+  key_prefix: "argus:"
+  ttl_days: 7
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Meta.Env != "from-env" || cfg.Meta.Service != "svc-env" || cfg.Meta.ImageTag != "tag-v9" {
+		t.Fatalf("overrides: %+v", cfg.Meta)
+	}
+}
+
+func TestValidateRejectsUnresolvedMetaPlaceholder(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "cfg.yaml")
+	content := `version: "1.0"
+meta:
+  env: prod
+  service: ${MISSING_SERVICE}
+inputs:
+  stdin: true
+redis:
+  address: "127.0.0.1:6379"
+  key_prefix: "argus:"
+  ttl_days: 7
+`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := config.Load(path)
+	if err == nil {
+		t.Fatal("expected unresolved meta.service error")
+	}
+}
+
 func TestValidateRequiredMeta(t *testing.T) {
 	cfg := &config.Config{
 		Redis:  config.Redis{Address: "127.0.0.1:6379", KeyPrefix: "argus:", TTLDays: 30},

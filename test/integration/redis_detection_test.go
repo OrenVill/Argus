@@ -12,6 +12,7 @@ import (
 
 	"github.com/OrenVill/Argus/internal/meta"
 	iredis "github.com/OrenVill/Argus/internal/redis"
+	"github.com/OrenVill/Argus/test/redisutil"
 )
 
 const (
@@ -36,8 +37,8 @@ func connectRedis(t *testing.T) *goredis.Client {
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		t.Skipf("redis not available: %v", err)
 	}
-	if err := rdb.FlushDB(ctx).Err(); err != nil {
-		t.Fatalf("flushdb: %v", err)
+	if err := redisutil.DeleteKeysWithPrefix(ctx, rdb, testPrefix); err != nil {
+		t.Fatalf("delete test keys: %v", err)
 	}
 	t.Cleanup(func() { _ = rdb.Close() })
 	return rdb

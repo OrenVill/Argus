@@ -50,8 +50,8 @@ func Run(ctx context.Context, cfg *config.Config) error {
 	}
 	ctrl := control.NewServer(cfg.Control, cfg.ToMeta(), store, defaultGrace)
 
-	runCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	runCtx, cancel := context.WithCancelCause(ctx)
+	defer cancel(nil)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -59,7 +59,7 @@ func Run(ctx context.Context, cfg *config.Config) error {
 		defer wg.Done()
 		if err := ctrl.Start(runCtx); err != nil {
 			slog.Error("control server", "err", err)
-			cancel()
+			cancel(err)
 		}
 	}()
 
