@@ -65,4 +65,6 @@ bash .cursor/start.sh
 redis-cli ping
 ```
 
+After you **Save** the Cloud Agent environment, Redis should start automatically on each agent boot via `start`. If `docs/SPEC.md` is missing locally, run `git pull origin main` (ensure latest commits are on Origin).
+
 Example configuration: [`config/argus.yaml.example`](config/argus.yaml.example).
