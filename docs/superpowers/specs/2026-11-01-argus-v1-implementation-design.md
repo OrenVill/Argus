@@ -181,3 +181,4 @@ func (s *Store) SetGraceDeadline(ctx context.Context, m meta.Meta, service strin
 - Never commit implementation on `main`.
 - Run `make quality:pr` before opening track PR.
 - No `BYPASS_AUTH` in tests or config.
+- **Models:** implementers `composer-2.5-fast`; track PR review `cursor-grok-4.6-high`; mission close `project-reviewer` on `main` with `claude-opus-5-5-high` (see `docs/plans/progress.md`).

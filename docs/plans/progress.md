@@ -14,4 +14,12 @@
 
 **Merge policy:** serialized A → B → C to `main`.
 
-**Last updated:** 2026-11-01 (mission bootstrap)
+## Cloud agent models (orchestrator)
+
+| Role | Model slug |
+| --- | --- |
+| Track implementers (A/B/C), debugger | `composer-2.5-fast` |
+| Per-track `code-reviewer` (once per PR) | `cursor-grok-4.6-high` |
+| Mission close `project-reviewer` (once on `main`) | `claude-opus-5-5-high` |
+
+**Last updated:** 2026-11-01 (model policy)
