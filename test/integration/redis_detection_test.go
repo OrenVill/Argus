@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	testPrefix = "argus:"
+	testPrefix = "argus:test-integration:"
 	testAddr   = "127.0.0.1:6379"
 )
 

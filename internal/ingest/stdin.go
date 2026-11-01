@@ -47,12 +47,30 @@ func runStdin(ctx context.Context, out chan<- string, send sendLine) {
 
 func readStdinLine(r *bufio.Reader) (string, error) {
 	var line []byte
+	discard := false
 	for {
 		part, err := r.ReadSlice('\n')
-		line = append(line, part...)
-		if err == nil {
+		hasNL := err == nil || bytes.IndexByte(part, '\n') >= 0
+
+		if !discard {
+			remain := stdinBufSize - len(line)
+			if len(part) <= remain {
+				line = append(line, part...)
+			} else {
+				if remain > 0 {
+					line = append(line, part[:remain]...)
+				}
+				discard = true
+			}
+		}
+
+		if hasNL {
+			if discard {
+				slog.Warn("stdin line exceeds limit; truncating", "limit", stdinBufSize)
+			}
 			break
 		}
+
 		if err == bufio.ErrBufferFull {
 			continue
 		}
@@ -62,13 +80,11 @@ func readStdinLine(r *bufio.Reader) (string, error) {
 			}
 			break
 		}
-		return "", err
+		if err != nil {
+			return "", err
+		}
 	}
 	line = bytes.TrimSuffix(line, []byte("\n"))
 	line = bytes.TrimSuffix(line, []byte("\r"))
-	if len(line) > stdinBufSize {
-		slog.Warn("stdin line exceeds limit; truncating", "limit", stdinBufSize, "bytes", len(line))
-		line = line[:stdinBufSize]
-	}
 	return string(line), nil
 }

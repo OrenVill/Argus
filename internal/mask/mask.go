@@ -60,8 +60,8 @@ func builtinMaskRules() []rule {
 			{`[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, TokenPII},
 			// Bearer tokens
 			{`(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*`, TokenPII},
-			// Authorization Basic header values
-			{`(?i)Authorization:\s*Basic\s+[A-Za-z0-9+/=]+`, TokenPII},
+			// Basic auth credentials (headers, JSON fields, query params)
+			{`(?i)Basic\s+[A-Za-z0-9+/=]+`, TokenPII},
 			// Basic auth in URLs
 			{`(?i)://[^:\s]+:[^@\s]+@`, TokenPII},
 			// Integer / float metrics (last built-in; decimals before integers)

@@ -42,7 +42,15 @@ func TestMaskGolden(t *testing.T) {
 		},
 		{
 			"Authorization: Basic dXNlcjpwYXNzd29yZA==",
-			"<PII>",
+			"Authorization: <PII>",
+		},
+		{
+			`{"Authorization":"Basic dXNlcjpwYXNz"}`,
+			`{"Authorization":"<PII>"}`,
+		},
+		{
+			"GET /api?auth=Basic dXNlcjpwYXNz",
+			"GET /api?auth=<PII>",
 		},
 		{
 			"latency 42.5ms count 1000",

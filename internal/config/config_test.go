@@ -9,6 +9,7 @@ import (
 )
 
 func TestLoadExampleConfig(t *testing.T) {
+	t.Setenv("ARGUS_ENV", "")
 	t.Setenv("ALERT_WEBHOOK_URL", "https://example.com/hook")
 	path := filepath.Join("..", "..", "config", "argus.yaml.example")
 	cfg, err := config.Load(path)
