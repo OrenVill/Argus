@@ -18,6 +18,7 @@
 - Control API default `127.0.0.1:9090`; webhook timeout default **5s**; retries **1s, 4s, 16s**.
 - Surge multipliers **[10, 100, 1000]**; regression default **24h**.
 - Cloud agents: **never** `BYPASS_AUTH`.
+- **File ownership / forbidden paths / per-track gates:** authoritative table in [implementation design spec § Mission tracks](../specs/2026-11-01-argus-v1-implementation-design.md#mission-tracks-3-parallel).
 
 ---
 
@@ -34,13 +35,14 @@ See [`docs/superpowers/specs/2026-11-01-argus-v1-implementation-design.md`](../s
 
 ### Task A1: Module scaffold
 
-- [ ] Create `go.mod` `github.com/OrenVill/Argus` (or module path from `origin` repo)
-- [ ] Add `Makefile` targets: `test`, `test-integration`, `lint`, `bench`, `quality:pr`
+- [ ] Create `go.mod` module `github.com/OrenVill/Argus`
+- [ ] Add `Makefile` targets: `test`, `test-integration`, `lint`, `bench`, `quality:pr` (`quality:pr` runs full suite including integration when Redis is up; Track A PR gate is lint + unit scope below until B lands integration targets)
 - [ ] Add `.golangci.yml` sensible defaults
 - [ ] `cmd/argus/main.go` stub calling cli root (empty run ok)
 
-### Task A2: Config
+### Task A2: Meta + config
 
+- [ ] `internal/meta` — `Env`, `Service`, `ImageTag` (stable for B/C)
 - [ ] `internal/config` load `config/argus.yaml.example` shape
 - [ ] Env var expansion for `${VAR}`
 - [ ] Validation: required meta, redis, webhook url when run mode (defer strict webhook for tests via build tag if needed)
@@ -62,14 +64,14 @@ See [`docs/superpowers/specs/2026-11-01-argus-v1-implementation-design.md`](../s
 - [ ] `internal/hash` xxHash64 hex
 - [ ] `internal/level` JSON field + regex + normalization WARNING→WARN, PANIC→FATAL, default INFO
 
-**Track A exit:** `go test ./internal/config/... ./internal/mask/... ./internal/drain/... ./internal/hash/... ./internal/level/...` pass; `make lint` pass.
+**Track A exit:** `go test ./internal/config/... ./internal/meta/... ./internal/mask/... ./internal/drain/... ./internal/hash/... ./internal/level/...` pass; `make lint` pass. Do **not** edit forbidden paths (see design spec track manifest).
 
 ---
 
 ## Track B — Redis detection (merge 2)
 
 **Branch:** `cursor/argus-v1-track-b-redis-8966`  
-**Depends on:** Track A merged to `main` (hash + meta types)
+**Depends on:** Track **A** merged to `main` (meta, hash, config types). Optional: branch early off A’s PR and rebase before merge — still merge **A** before **B**.
 
 ### Task B1: Redis client wrapper
 
@@ -80,7 +82,7 @@ See [`docs/superpowers/specs/2026-11-01-argus-v1-implementation-design.md`](../s
 
 - [ ] `internal/redis/scripts/process_line.lua` — full §5 state machine
 - [ ] `go:embed` + `Store.ProcessLine` wrapper
-- [ ] Status API mutations: known/ignored/new (delete on new)
+- [ ] `Store.SetTemplateStatus` / `SetGraceDeadline` for §5.6 and §6 (HTTP routes wired in Track C only)
 
 ### Task B3: Integration tests
 

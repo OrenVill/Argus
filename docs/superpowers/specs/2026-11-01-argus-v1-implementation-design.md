@@ -106,35 +106,68 @@ Integration tests require Redis (`127.0.0.1:6379`); skip if unavailable in short
 
 ## Mission tracks (≤3 parallel)
 
-| Track | ID | Owns | Branch prefix | Merge order |
+| Track | ID | Owns | Branch name | Merge order |
 | --- | --- | --- | --- | --- |
-| **A** | normalization | `go.mod`, Makefile skeleton, config, mask, drain, hash, level, unit tests | `cursor/argus-v1-track-a-*-8966` | **1st** |
-| **B** | redis-detection | `internal/redis/**`, Lua, grace keys, integration tests | `cursor/argus-v1-track-b-*-8966` | **2nd** (after A interfaces stable) |
-| **C** | runtime | ingest, pipeline, daemon, webhook, control, cli, golden, wire-up | `cursor/argus-v1-track-c-*-8966` | **3rd** |
+| **A** | normalization | See **Track manifest** below | `cursor/argus-v1-track-a-normalization-8966` | **1st** |
+| **B** | redis-detection | See **Track manifest** below | `cursor/argus-v1-track-b-redis-8966` | **2nd** (after **A** on `main`) |
+| **C** | runtime | See **Track manifest** below | `cursor/argus-v1-track-c-runtime-8966` | **3rd** (after **A+B** on `main`) |
 
-**Parallel rule:** A and B may run in parallel once shared types are defined in A’s first commit (`internal/meta`, hash string format). B must not import ingest/webhook. C starts after A+B merged to integration branch or sequentially merge A→B→main then C rebases.
+### Track manifest (ownership + gates)
 
-**Serialized merges to `main`:** A → B → C only.
+| Track | Owned paths | Forbidden paths (do not edit) | Quality gate before PR |
+| --- | --- | --- | --- |
+| **A** | `go.mod`, `Makefile`, `.golangci.yml`, `cmd/argus/main.go` (stub only), `internal/config/**`, `internal/meta/**`, `internal/mask/**`, `internal/drain/**`, `internal/hash/**`, `internal/level/**`, `config/argus.yaml.example` (shape only), `testdata/logs/**` | `internal/redis/**`, `internal/ingest/**`, `internal/pipeline/**`, `internal/daemon/**`, `internal/webhook/**`, `internal/control/**`, `internal/cli/**` (beyond what stub needs), `test/integration/**`, `test/golden/**`, `docs/schemas/**` | `make lint` + `go test ./internal/config/... ./internal/mask/... ./internal/drain/... ./internal/hash/... ./internal/level/...` |
+| **B** | `internal/redis/**` (incl. `scripts/process_line.lua`), `test/integration/redis_*_test.go` | `internal/ingest/**`, `internal/pipeline/**`, `internal/daemon/**`, `internal/webhook/**`, `internal/control/**`, `internal/cli/**`, `test/golden/**`; do not change A package APIs without A owner | `make quality:pr` (requires Redis; see Makefile) |
+| **C** | `internal/ingest/**`, `internal/pipeline/**`, `internal/daemon/**`, `internal/webhook/**`, `internal/control/**`, `internal/cli/**`, `test/golden/**`, `README.md` (implementation status), optional `scripts/*smoke*` | `internal/mask/**`, `internal/drain/**`, `internal/hash/**`, `internal/level/**`, `internal/redis/scripts/**` (behavior changes go through B) | `make quality:pr` |
+
+**Parallel development:** At most **two** implementer branches at once (**A** then **B**, or **B** rebased on **A**’s branch before **A** merges — optional early start). **Merge to `main` is always serialized:** **A → B → C** only; never merge B or C before their dependencies are on `main`. **C** must not open until **A** and **B** are merged.
+
+**Rebase rule:** Before opening a track PR, sync `origin/main`, rebase the track branch, run that track’s quality gate.
 
 ## Interfaces between tracks
 
+Track **A** owns type signatures and behavior for normalization; track **B** owns Redis/Lua and exposes `Store`; track **C** wires ingest → pipeline → webhook/control/CLI. Cross-track changes to these signatures require orchestrator approval.
+
 ```go
-// internal/meta/meta.go
+// internal/meta/meta.go — Track A
 type Meta struct { Env, Service, ImageTag string }
 
-// internal/hash/hash.go
-func TemplateHash(m meta.Meta, template string) string
+// internal/config — Track A: exported Config loaded from YAML (C reads, does not fork schema)
+// internal/hash/hash.go — Track A
+func TemplateHash(m meta.Meta, template string) string // hex lowercase xxHash64
 
-// internal/drain/drain.go
+// internal/drain/drain.go — Track A
 type Cluster struct { Template string }
+func NewForest(m meta.Meta, depth int, simThreshold float64) *Forest
 func (f *Forest) Match(line string) Cluster
 
-// internal/redis/store.go
-type LineResult struct { FireWebhook bool; AnomalyType string; ... }
+// internal/level — Track A
+func Parse(line string, cfg config.LogLevelConfig) string // DEBUG|INFO|WARN|ERROR|FATAL
+
+// internal/redis/store.go — Track B
+type ProcessInput struct {
+	TemplateHash, Template, Level, NowRFC3339, MaskedSample string
+	GraceDeadlineRFC3339 string // empty if no active grace
+	RegressionThreshold  time.Duration
+	SurgeMultipliers     []int
+	TTLSeconds, SampleMax int
+}
+type LineResult struct {
+	FireWebhook bool
+	AnomalyType string // NEW_SIGNATURE | FREQUENCY_SPIKE | REGRESSION
+	Count, ReportedCount int
+	SurgeMultiplier int
+	SampleLines []string
+	FirstSeen, LastSeen string
+}
 func (s *Store) ProcessLine(ctx context.Context, m meta.Meta, in ProcessInput) (LineResult, error)
+
+// Control-facing — Track B (HTTP lives in C)
+func (s *Store) SetTemplateStatus(ctx context.Context, m meta.Meta, hash, status string) error // known|ignored|new
+func (s *Store) SetGraceDeadline(ctx context.Context, m meta.Meta, service string, deadline time.Time, ttl time.Duration) error
 ```
 
-Track A owns signatures; B implements `Store`; C owns `pipeline` calling A+B.
+**Module path:** `github.com/OrenVill/Argus` (matches public GitHub remote in README).
 
 ## Non-goals for implementers
 
