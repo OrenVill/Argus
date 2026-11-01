@@ -24,3 +24,12 @@ redis-cli ping
 ```
 
 Example configuration: [`config/argus.yaml.example`](config/argus.yaml.example).
+
+## Repositories
+
+| Forge | Location | Visibility |
+| --- | --- | --- |
+| **Origin (Cursor)** | [oren/Argus](https://cursor.com/codebase/oren/Argus) | Private (personal Origin repos stay private) |
+| **GitHub** | `https://github.com/<your-user>/Argus` after publish | Public (once created) |
+
+Origin and GitHub can stay linked via **Sync from GitHub** so pushes to GitHub update the Origin mirror. See [Mirror a GitHub repository](https://cursor.com/docs/origin/mirror-github).
