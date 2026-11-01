@@ -6,9 +6,8 @@
 | Brainstorm | done | See implementation design spec |
 | Design on integration | done | `efb7195` on `cursor/argus-v1-integration-8966`; PR #1 → integration |
 | Implementation plan | done | `docs/superpowers/plans/2026-11-01-argus-v1-implementation.md` |
-| Track A normalization | in_progress | Cloud agent `bc-01d737ff-51ad-5782-8d7b-53fafbbc7bcd` |
-| Mission planner review | done | Track manifest + merge/parallel rules in design spec |
-| Track B redis-detection | pending | blocked on A merge |
+| Track A normalization | review | PR #2 → integration; [Track A normalization implementer](bc-01d737ff-51ad-5782-8d7b-53fafbbc7bcd) done; Grok review [Track A code review](bc-8ef15888-8d5c-5f91-afad-a9bb4087e08a) |
+| Track B redis-detection | pending | blocked on A merge to integration |
 | Track C runtime | pending | blocked on B merge |
 | project-reviewer | pending | on integration after C; then PR integration → `main` |
 
