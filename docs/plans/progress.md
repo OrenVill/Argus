@@ -6,7 +6,7 @@
 | Brainstorm | done | See implementation design spec |
 | Design on integration | done | `efb7195` on `cursor/argus-v1-integration-8966`; PR #1 → integration |
 | Implementation plan | done | `docs/superpowers/plans/2026-11-01-argus-v1-implementation.md` |
-| Track A normalization | fixes | PR #2; [Track A re-review](bc-e90dcaa0-98b7-5a25-9b89-f1a12ee0ff43) IPv6 maximal-match blocker — composer fix in flight |
+| Track A normalization | re-review | PR #2 @ `ab2302f`; [IPv6 maximal mask fix](bc-b989b7ea-d33f-52c5-b4c2-434085fc4c01); quality OK; [Track A final review](bc-d91f33af-46f9-5481-a720-7daa4b0bee2c) |
 | Track B redis-detection | pending | blocked on A merge to integration |
 | Track C runtime | pending | blocked on B merge |
 | project-reviewer | pending | on integration after C; then PR integration → `main` |
