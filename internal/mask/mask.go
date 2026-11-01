@@ -23,8 +23,6 @@ const (
 // ipv6Candidate finds bracketed or colon-hex substrings; net.ParseIP filters false positives (e.g. 12:00:00).
 var ipv6Candidate = regexp.MustCompile(`(?i)(?:\[(?:[0-9a-f]{0,4}:){1,7}[0-9a-f]{0,4}\]|(?:[0-9a-f]{1,4}:){1,7}[0-9a-f]{0,4}|(?:[0-9a-f]{1,4}:){1,7}:|:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{0,4})(?::\d+)?`)
 
-var clockTimeSpan = regexp.MustCompile(`\b\d{1,2}:\d{2}:\d{2}\b`)
-
 type rule struct {
 	re  *regexp.Regexp
 	tok string
