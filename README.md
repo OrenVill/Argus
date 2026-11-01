@@ -4,6 +4,8 @@ Tier-1 log anomaly detection daemon: tail logs, mask and template with Drain, tr
 
 **Status:** specification and development environment only — the daemon is not implemented yet.
 
+Product specification: [`docs/SPEC.md`](docs/SPEC.md) (implementation-ready v1.0).
+
 ## Remotes
 
 | Role | Forge | Remote name | URL |

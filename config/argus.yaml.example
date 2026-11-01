@@ -1,18 +1,32 @@
-# Reference configuration from the Argus product spec (not wired until implementation).
 version: "1.0"
+
+meta:
+  env: "dev"
+  service: "payment-svc"
+  # image_tag: "${ARGUS_IMAGE_TAG}"
 
 daemon:
   workers: 8
   buffer_capacity: 10000
+
+inputs:
+  stdin: false
+  files:
+    - "/var/log/app/*.log"
 
 redis:
   address: "127.0.0.1:6379"
   key_prefix: "argus:"
   ttl_days: 30
 
+log_level:
+  json_field: "level"
+  regex: '(?i)\b(DEBUG|INFO|WARN|WARNING|ERROR|FATAL|PANIC)\b'
+
 normalization:
   drain_depth: 4
   sim_threshold: 0.5
+  sample_lines_max: 5
   masking_patterns:
     - name: "uuid"
       regex: '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
@@ -27,3 +41,7 @@ detection:
 webhook:
   url: "${ALERT_WEBHOOK_URL}"
   timeout: "5s"
+
+control:
+  listen: "127.0.0.1:9090"
+  # bearer_token: "${ARGUS_CONTROL_TOKEN}"
