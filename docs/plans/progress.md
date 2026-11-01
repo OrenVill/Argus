@@ -9,8 +9,8 @@
 | Track A normalization | done | Merged to integration @ `ab2302f`; [Track A final review](bc-d91f33af-46f9-5481-a720-7daa4b0bee2c) approve |
 | Track B redis-detection | done | Merged to integration @ `0704ba4`; [Track B code review](bc-38c64c8c-d41c-5bfe-a870-8437757cd970) approve |
 | Track C runtime | done | Merged @ `0c5013c`; [Track C code review](bc-c11750f5-a440-57bc-805c-803506bbf1e7) approve |
-| Release must-fix | done | [Release must-fix pass](bc-b4d52389-b20e-506d-929d-db071409caf4) merged @ `1422717`; PR #5 |
-| project-reviewer | re-review | [Opus release re-review](bc-52f71f72-9167-53e7-a9df-23d0143618e2) for integration→`main` |
+| Release must-fix | round 2 | [Release must-fix round 2](bc-497b73c3-d8c9-5b77-b1d7-276702dc82a4) on `cursor/argus-v1-release-fixes-2-8966` |
+| project-reviewer | re-review | [Opus release re-review](bc-52f71f72-9167-53e7-a9df-23d0143618e2) **not release-ready** (Basic JSON, stdin memory, test prefix) |
 
 **Integration branch:** `cursor/argus-v1-integration-8966` — **all** mission PRs (design + tracks A/B/C) merge here first.
 
