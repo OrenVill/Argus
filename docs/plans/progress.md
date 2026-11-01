@@ -9,19 +9,8 @@
 | Track A normalization | done | Merged to integration @ `ab2302f`; [Track A final review](bc-d91f33af-46f9-5481-a720-7daa4b0bee2c) approve |
 | Track B redis-detection | done | Merged to integration @ `0704ba4`; [Track B code review](bc-38c64c8c-d41c-5bfe-a870-8437757cd970) approve |
 | Track C runtime | done | Merged @ `0c5013c`; [Track C code review](bc-c11750f5-a440-57bc-805c-803506bbf1e7) approve |
-| project-reviewer | fixes | Opus **not release-ready**; [Release must-fix pass](bc-b4d52389-b20e-506d-929d-db071409caf4) on `cursor/argus-v1-release-fixes-8966` |
-
-### Must-fix before release PR (Opus)
-
-1. Stdin oversized lines (>256KiB) kill ingestion
-2. Control bind failure → wrong exit / hang
-3. SIGTERM + open stdin blocks shutdown
-4. `Authorization: Basic …` not masked
-5. Bare `HH:MM:SS` not masked → duplicate NEW_SIGNATURE
-6. `ARGUS_ENV` / `ARGUS_SERVICE` / `ARGUS_IMAGE_TAG` + unresolved `${VAR}`
-7. expvar metrics not served (`/debug/vars`)
-8. New glob files seek EOF → lose first lines
-9. `test-integration` + golden `FlushDB` race; include golden in gate
+| Release must-fix | done | [Release must-fix pass](bc-b4d52389-b20e-506d-929d-db071409caf4) merged @ `1422717`; PR #5 |
+| project-reviewer | re-review | [Opus release re-review](bc-52f71f72-9167-53e7-a9df-23d0143618e2) for integration→`main` |
 
 **Integration branch:** `cursor/argus-v1-integration-8966` — **all** mission PRs (design + tracks A/B/C) merge here first.
 
