@@ -7,8 +7,8 @@
 | Design on integration | done | `efb7195` on `cursor/argus-v1-integration-8966`; PR #1 → integration |
 | Implementation plan | done | `docs/superpowers/plans/2026-11-01-argus-v1-implementation.md` |
 | Track A normalization | done | Merged to integration @ `ab2302f`; [Track A final review](bc-d91f33af-46f9-5481-a720-7daa4b0bee2c) approve |
-| Track B redis-detection | in_progress | [Track B redis implementer](bc-71e029ed-21b6-580d-a0af-2a5a7f62dcf0) |
-| Track C runtime | pending | blocked on B merge |
+| Track B redis-detection | done | Merged to integration @ `0704ba4`; [Track B code review](bc-38c64c8c-d41c-5bfe-a870-8437757cd970) approve |
+| Track C runtime | in_progress | [Track C runtime implementer](bc-4c662105-9197-5ee3-927d-74a11fa7aa34) |
 | project-reviewer | pending | on integration after C; then PR integration → `main` |
 
 **Integration branch:** `cursor/argus-v1-integration-8966` — **all** mission PRs (design + tracks A/B/C) merge here first.
