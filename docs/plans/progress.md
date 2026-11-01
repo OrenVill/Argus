@@ -10,9 +10,13 @@
 | Mission planner review | done | Track manifest + merge/parallel rules in design spec |
 | Track B redis-detection | pending | blocked on A merge |
 | Track C runtime | pending | blocked on B merge |
-| project-reviewer | pending | after C on main |
+| project-reviewer | pending | on integration after C; then PR integration → `main` |
 
-**Merge policy:** serialized A → B → C to `main`.
+**Integration branch:** `cursor/argus-v1-integration-8966` — **all** mission PRs (design + tracks A/B/C) merge here first.
+
+**Merge policy:** serialized **A → B → C** onto **integration** (never directly to `main`). One **release PR** `cursor/argus-v1-integration-8966` → `main` after `make quality:pr` on integration and mission `project-reviewer`.
+
+**Release PR:** open only when integration contains full v1; do not merge tracks to `main` individually.
 
 ## Cloud agent models (orchestrator)
 
@@ -20,6 +24,6 @@
 | --- | --- |
 | Track implementers (A/B/C), debugger | `composer-2.5-fast` |
 | Per-track `code-reviewer` (once per PR) | `cursor-grok-4.6-high` |
-| Mission close `project-reviewer` (once on `main`) | `claude-opus-5-5-high` |
+| Mission close `project-reviewer` (on integration, before release PR) | `claude-opus-5-5-high` |
 
 **Last updated:** 2026-11-01 (model policy)

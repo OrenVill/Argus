@@ -4,7 +4,7 @@
 
 **Goal:** Deliver the full Argus v1 daemon in Go per [`docs/SPEC.md`](../../SPEC.md): ingest, mask, Drain, Redis Lua anomaly machine, webhooks, control API, and CLI.
 
-**Architecture:** Layered monolith with three mission tracks (normalization, redis-detection, runtime); serialized merges to `main`. Hot path stays in worker goroutines; webhooks async.
+**Architecture:** Layered monolith with three mission tracks (normalization, redis-detection, runtime); serialized merges onto **`cursor/argus-v1-integration-8966`**, then one PR to `main`. Hot path stays in worker goroutines; webhooks async.
 
 **Tech Stack:** Go 1.23+, redis/go-redis/v9, cobra, chi, yaml.v3, xxhash, nxadm/tail, fsnotify, embedded Lua.
 
@@ -71,7 +71,7 @@ See [`docs/superpowers/specs/2026-11-01-argus-v1-implementation-design.md`](../s
 ## Track B — Redis detection (merge 2)
 
 **Branch:** `cursor/argus-v1-track-b-redis-8966`  
-**Depends on:** Track **A** merged to `main` (meta, hash, config types). Optional: branch early off A’s PR and rebase before merge — still merge **A** before **B**.
+**Depends on:** Track **A** merged to **integration** (meta, hash, config types). Optional: branch early off A’s PR and rebase before merge — still merge **A** before **B** onto integration.
 
 ### Task B1: Redis client wrapper
 
@@ -138,11 +138,13 @@ See [`docs/superpowers/specs/2026-11-01-argus-v1-implementation-design.md`](../s
 
 | Step | Action |
 | --- | --- |
-| 1 | Merge design spec + this plan PR to `main` |
-| 2 | Cloud agent Track A → PR → `quality:pr` → merge |
-| 3 | Cloud agent Track B → PR → merge |
-| 4 | Cloud agent Track C → PR → merge |
-| 5 | `project-reviewer` once on `main` |
+| 0 | Integration branch `cursor/argus-v1-integration-8966` from `main`; all mission PRs target it |
+| 1 | Merge design spec + plan PR → **integration** |
+| 2 | Cloud agent Track A → PR → **integration** → `quality:pr` gate |
+| 3 | Cloud agent Track B → PR → **integration** |
+| 4 | Cloud agent Track C → PR → **integration** |
+| 5 | `project-reviewer` on **integration** (`claude-opus-5-5-high`) |
+| 6 | Single release PR **integration → `main`** |
 
 Progress log: [`docs/plans/progress.md`](../../plans/progress.md)
 

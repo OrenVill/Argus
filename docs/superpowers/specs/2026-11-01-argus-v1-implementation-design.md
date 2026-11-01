@@ -120,9 +120,11 @@ Integration tests require Redis (`127.0.0.1:6379`); skip if unavailable in short
 | **B** | `internal/redis/**` (incl. `scripts/process_line.lua`), `test/integration/redis_*_test.go` | `internal/ingest/**`, `internal/pipeline/**`, `internal/daemon/**`, `internal/webhook/**`, `internal/control/**`, `internal/cli/**`, `test/golden/**`; do not change A package APIs without A owner | `make quality:pr` (requires Redis; see Makefile) |
 | **C** | `internal/ingest/**`, `internal/pipeline/**`, `internal/daemon/**`, `internal/webhook/**`, `internal/control/**`, `internal/cli/**`, `test/golden/**`, `README.md` (implementation status), optional `scripts/*smoke*` | `internal/mask/**`, `internal/drain/**`, `internal/hash/**`, `internal/level/**`, `internal/redis/scripts/**` (behavior changes go through B) | `make quality:pr` |
 
-**Parallel development:** At most **two** implementer branches at once (**A** then **B**, or **B** rebased on **A**’s branch before **A** merges — optional early start). **Merge to `main` is always serialized:** **A → B → C** only; never merge B or C before their dependencies are on `main`. **C** must not open until **A** and **B** are merged.
+**Parallel development:** At most **two** implementer branches at once (**A** then **B**, or **B** rebased on **A**’s branch before **A** merges — optional early start). **Merge to integration is always serialized:** **A → B → C** only onto `cursor/argus-v1-integration-8966`; never merge B or C before their dependencies are on **integration**. **Do not merge track PRs to `main`.** **C** must not open until **A** and **B** are on integration.
 
-**Rebase rule:** Before opening a track PR, sync `origin/main`, rebase the track branch, run that track’s quality gate.
+**Release:** After all tracks and `project-reviewer` on integration, open a single PR **integration → `main`**.
+
+**Rebase rule:** Before opening a track PR, sync `origin/cursor/argus-v1-integration-8966`, rebase the track branch, run that track’s quality gate.
 
 ## Interfaces between tracks
 
@@ -177,8 +179,9 @@ func (s *Store) SetGraceDeadline(ctx context.Context, m meta.Meta, service strin
 
 ## Cloud agent rules
 
-- Sync `origin/main` before each track branch.
-- Never commit implementation on `main`.
+- Sync `origin/cursor/argus-v1-integration-8966` before each track branch (and `origin/main` only when cutting integration from main).
+- Never commit implementation on `main` or push track work directly to `main`.
+- Track PR **base branch:** `cursor/argus-v1-integration-8966`.
 - Run `make quality:pr` before opening track PR.
 - No `BYPASS_AUTH` in tests or config.
-- **Models:** implementers `composer-2.5-fast`; track PR review `cursor-grok-4.6-high`; mission close `project-reviewer` on `main` with `claude-opus-5-5-high` (see `docs/plans/progress.md`).
+- **Models:** implementers `composer-2.5-fast`; track PR review `cursor-grok-4.6-high`; mission close `project-reviewer` on **integration** with `claude-opus-5-5-high`, then release PR to `main` (see `docs/plans/progress.md`).
