@@ -20,9 +20,6 @@ const (
 	TokenNUM  = "<NUM>"
 )
 
-// ipv6Candidate finds bracketed or colon-hex substrings; net.ParseIP filters false positives (e.g. 12:00:00).
-var ipv6Candidate = regexp.MustCompile(`(?i)(?:\[(?:[0-9a-f]{0,4}:){1,7}[0-9a-f]{0,4}\]|(?:[0-9a-f]{1,4}:){1,7}[0-9a-f]{0,4}|(?:[0-9a-f]{1,4}:){1,7}:|:(?:[0-9a-f]{1,4}:){0,6}[0-9a-f]{0,4})(?::\d+)?`)
-
 type rule struct {
 	re  *regexp.Regexp
 	tok string
@@ -109,11 +106,11 @@ func (m *Masker) Apply(line string) string {
 			out = replaceIntegers(out, r.re, r.tok)
 			continue
 		}
-		out = r.re.ReplaceAllString(out, r.tok)
-		// Built-in IPv4 is index 1; IPv6 masking follows immediately per §4.1 IP before TS/NUM.
+		// Built-in IPv4 is index 1; mask maximal IPv6 literals before dotted-quad so mapped forms stay one <IP>.
 		if i == 1 && builtinN > 1 {
 			out = maskIPv6(out)
 		}
+		out = r.re.ReplaceAllString(out, r.tok)
 	}
 	return out
 }
@@ -151,24 +148,95 @@ func replaceIntegers(line string, re *regexp.Regexp, tok string) string {
 func maskIPv6(line string) string {
 	var b strings.Builder
 	b.Grow(len(line))
-	remaining := line
-	for {
-		loc := ipv6Candidate.FindStringIndex(remaining)
-		if loc == nil {
-			b.WriteString(remaining)
-			break
-		}
-		start, end := loc[0], loc[1]
-		b.WriteString(remaining[:start])
-		candidate := remaining[start:end]
-		if isIPv6Literal(candidate) && hasIPv6Boundary(remaining, start, end) {
+	for i := 0; i < len(line); {
+		if end, ok := maximalIPv6Span(line, i); ok {
 			b.WriteString(TokenIP)
-		} else {
-			b.WriteString(candidate)
+			i = end
+			continue
 		}
-		remaining = remaining[end:]
+		b.WriteByte(line[i])
+		i++
 	}
 	return b.String()
+}
+
+const maxIPv6LiteralLen = 49 // longest textual forms incl. brackets and :port
+
+func maximalIPv6Span(line string, start int) (end int, ok bool) {
+	if start >= len(line) {
+		return 0, false
+	}
+	switch line[start] {
+	case '[':
+		return maximalBracketedIPv6(line, start)
+	case ':':
+		return growIPv6Literal(line, start)
+	default:
+		if !isHexDigit(line[start]) {
+			return 0, false
+		}
+		return growIPv6Literal(line, start)
+	}
+}
+
+func maximalBracketedIPv6(line string, start int) (int, bool) {
+	close := strings.IndexByte(line[start+1:], ']')
+	if close < 0 {
+		return 0, false
+	}
+	end := start + 1 + close + 1
+	if !isIPv6Literal(line[start:end]) {
+		return 0, false
+	}
+	end = extendPortSuffix(line, start, end)
+	if !hasIPv6Boundary(line, start, end) {
+		return 0, false
+	}
+	return end, true
+}
+
+func growIPv6Literal(line string, start int) (int, bool) {
+	limit := start + maxIPv6LiteralLen
+	if limit > len(line) {
+		limit = len(line)
+	}
+	best := -1
+	for e := start + 1; e <= limit; e++ {
+		if !isIPv6LiteralChar(line[e-1]) {
+			break
+		}
+		if !isIPv6Literal(line[start:e]) {
+			continue
+		}
+		spanEnd := extendPortSuffix(line, start, e)
+		if hasIPv6Boundary(line, start, spanEnd) {
+			best = spanEnd
+		}
+	}
+	if best < 0 {
+		return 0, false
+	}
+	return best, true
+}
+
+func extendPortSuffix(line string, start, hostEnd int) int {
+	if hostEnd >= len(line) || line[hostEnd] != ':' {
+		return hostEnd
+	}
+	if hostEnd > start && line[hostEnd-1] == ':' {
+		return hostEnd
+	}
+	p := hostEnd + 1
+	for p < len(line) && line[p] >= '0' && line[p] <= '9' {
+		p++
+	}
+	if p == hostEnd+1 {
+		return hostEnd
+	}
+	if isIPv6Literal(line[start:p]) {
+		return p
+	}
+	return hostEnd
 }
 
 func hasIPv6Boundary(line string, start, end int) bool {
@@ -188,16 +256,55 @@ func hasIPv6Boundary(line string, start, end int) bool {
 }
 
 func isIPv6Literal(s string) bool {
-	host := s
-	if i := strings.Index(host, "]:"); i >= 0 {
-		host = host[:i+1]
-	}
-	host = strings.TrimPrefix(host, "[")
-	host = strings.TrimSuffix(host, "]")
+	host := ipv6HostForParse(s)
 	if strings.Contains(host, "::") || strings.Count(host, ":") >= 2 {
 		if ip := net.ParseIP(host); ip != nil && strings.Contains(host, ":") {
 			return true
 		}
 	}
 	return false
+}
+
+func ipv6HostForParse(s string) string {
+	if strings.HasPrefix(s, "[") {
+		host := s
+		if i := strings.Index(host, "]:"); i >= 0 {
+			host = host[:i+1]
+		}
+		host = strings.TrimPrefix(host, "[")
+		return strings.TrimSuffix(host, "]")
+	}
+	if ip := net.ParseIP(s); ip != nil && strings.Contains(s, ":") {
+		return s
+	}
+	i := strings.LastIndex(s, ":")
+	if i <= 0 {
+		return s
+	}
+	port := s[i+1:]
+	if port == "" || !allDecimal(port) {
+		return s
+	}
+	host := s[:i]
+	if ip := net.ParseIP(host); ip != nil {
+		return host
+	}
+	return s
+}
+
+func isHexDigit(b byte) bool {
+	return (b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')
+}
+
+func isIPv6LiteralChar(b byte) bool {
+	return isHexDigit(b) || b == ':' || b == '.'
+}
+
+func allDecimal(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return len(s) > 0
 }
