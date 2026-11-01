@@ -10,7 +10,8 @@
 | Track B redis-detection | done | Merged to integration @ `0704ba4`; [Track B code review](bc-38c64c8c-d41c-5bfe-a870-8437757cd970) approve |
 | Track C runtime | done | Merged @ `0c5013c`; [Track C code review](bc-c11750f5-a440-57bc-805c-803506bbf1e7) approve |
 | Release must-fix | done | Round 2 [Release must-fix round 2](bc-497b73c3-d8c9-5b77-b1d7-276702dc82a4) merged @ `c8e12ff`; PR #6 |
-| project-reviewer | final gate | [Opus final release gate](bc-ef015357-0846-5a38-aa37-493e1b7bd6aa) |
+| project-reviewer | done | [Opus final release gate](bc-ef015357-0846-5a38-aa37-493e1b7bd6aa) **release-ready: yes** |
+| Release PR → `main` | open | integration branch PR (see Origin) |
 
 **Integration branch:** `cursor/argus-v1-integration-8966` — **all** mission PRs (design + tracks A/B/C) merge here first.
 
