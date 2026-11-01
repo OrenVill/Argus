@@ -26,4 +26,4 @@ cd "${TARGET}"
 bash .cursor/install.sh
 bash .cursor/start.sh
 
-echo "Clone ready. Optional portfolio setup: bash scripts/github-portfolio-setup.sh"
+echo "Clone ready. To add GitHub: bash scripts/setup-github-remote.sh"

@@ -38,7 +38,6 @@ else
 fi
 
 echo
-echo "Next: push Origin main, then mirror to GitHub:"
+echo "Next:"
 echo "  git push origin main"
-echo "  git push github main"
-echo "Or: bash scripts/push-portfolio.sh"
+echo "  bash scripts/push-github.sh"
