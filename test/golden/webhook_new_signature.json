@@ -1,0 +1,13 @@
+{
+  "env": "dev",
+  "service": "payment-svc",
+  "template_hash": "0123456789abcdef",
+  "template": "ERROR connection failed host=<IP>",
+  "level": "ERROR",
+  "anomaly_type": "NEW_SIGNATURE",
+  "count": 1,
+  "reported_count": 0,
+  "sample_lines": ["ERROR connection failed host=<IP>"],
+  "first_seen": "2026-11-01T12:00:00Z",
+  "last_seen": "2026-11-01T12:00:00Z"
+}
