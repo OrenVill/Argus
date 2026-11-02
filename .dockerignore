@@ -1,0 +1,12 @@
+.git
+.github
+.cursor
+*.md
+docs/
+test/
+scripts/
+argus.yaml
+.env
+.env.*
+**/*_test.go
+**/*.test
