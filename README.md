@@ -42,3 +42,19 @@ go build -o argus ./cmd/argus
 ```
 
 Smoke (Redis + mock webhook pipeline): `bash scripts/argus-smoke.sh`
+
+## Container image (GitHub Packages)
+
+The [`Dockerfile`](Dockerfile) builds a minimal runtime image. On push to `main` (or version tags `v*`), [`.github/workflows/publish-container.yml`](.github/workflows/publish-container.yml) publishes to **GitHub Container Registry**:
+
+```text
+ghcr.io/orenvill/argus:latest
+```
+
+Build locally:
+
+```bash
+docker build -t argus:local .
+```
+
+Kubernetes manifests: [`deploy/kubernetes/`](deploy/kubernetes/) (Redis + Argus Deployment, ConfigMap, control Service). See that README for `kubectl apply -k` and required secrets.

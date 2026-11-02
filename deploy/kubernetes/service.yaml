@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: argus-control
+  labels:
+    app.kubernetes.io/name: argus
+    app.kubernetes.io/part-of: argus
+spec:
+  type: ClusterIP
+  ports:
+    - name: control
+      port: 9090
+      targetPort: control
+  selector:
+    app.kubernetes.io/name: argus

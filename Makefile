@@ -1,4 +1,4 @@
-.PHONY: test test-integration lint bench quality\:pr golangci-lint
+.PHONY: test test-integration lint bench quality\:pr golangci-lint docker-build
 
 GOLANGCI_VERSION ?= v1.64.8
 GOPATH_BIN := $(shell go env GOPATH)/bin
@@ -30,3 +30,6 @@ bench:
 	go test ./... -bench=. -benchtime=100ms -run=^$$ -count=1
 
 quality\:pr: lint test test-integration bench
+
+docker-build:
+	docker build -t argus:local .
