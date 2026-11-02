@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argus
+  labels:
+    app.kubernetes.io/name: argus
+    app.kubernetes.io/part-of: argus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argus
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: argus
+        app.kubernetes.io/part-of: argus
+    spec:
+      containers:
+        - name: argus
+          image: ghcr.io/orenvill/argus:latest
+          imagePullPolicy: IfNotPresent
+          args:
+            - run
+            - -c
+            - /config/argus.yaml
+          ports:
+            - name: control
+              containerPort: 9090
+          env:
+            - name: ARGUS_ENV
+              value: "prod"
+            - name: ARGUS_SERVICE
+              value: "payment-svc"
+            - name: ARGUS_REDIS_ADDRESS
+              value: "redis.argus.svc.cluster.local:6379"
+            - name: ALERT_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: argus-secrets
+                  key: alert-webhook-url
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: control
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: control
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: argus-config
